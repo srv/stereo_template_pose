@@ -1,0 +1,24 @@
+<package>
+  <description brief="stereo_template_pose">
+
+     stereo_template_pose
+
+  </description>
+  <author>Pep Lluis Negre</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/stereo_template_pose</url>
+
+  <depend package="roscpp"/>
+  <depend package="nav_msgs"/>
+  <depend package="tf"/>
+  <depend package="sensor_msgs"/>
+  <depend package="image_transport"/>
+  <depend package="message_filters"/>
+  <depend package="opencv2" />
+  <depend package="cv_bridge" />
+  <depend package="image_geometry" />
+
+</package>
+
+
