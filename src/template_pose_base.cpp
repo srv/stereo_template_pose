@@ -78,27 +78,25 @@ void template_pose::TemplatePoseBase::msgsCallback(
   // Estimate the transform
   tf::Transform est_tf;
   if(estimateTransform(est_tf))
-  {
-    // Publish the transform
-    tf_broadcaster_.sendTransform(
-      tf::StampedTransform(est_tf, l_img->header.stamp,
-      params_.stereo_frame_id, params_.template_frame_id));
-
-    // Log
-    double x, y, z, roll, pitch, yaw;
-    est_tf.getBasis().getRPY(roll, pitch, yaw);
-    x = est_tf.getOrigin().x();
-    y = est_tf.getOrigin().y();
-    z = est_tf.getOrigin().z();
-    ROS_INFO_STREAM("[TemplatePose:] Camera to template image:" <<
-                    " [" << x << ", " << y << ", " << z << 
-                    ", " << roll*180/M_PI << ", " << pitch*180/M_PI << 
-                    ", " << yaw*180/M_PI << "]");
-  }
+    camera_to_template_ = est_tf;
   else
-  {
     ROS_INFO("[TemplatePose:] No transform found.");
-  }
+
+  // Publish the transform
+  tf_broadcaster_.sendTransform(
+    tf::StampedTransform(camera_to_template_, l_img->header.stamp,
+    params_.stereo_frame_id, params_.template_frame_id));
+
+  // Log
+  double x, y, z, roll, pitch, yaw;
+  camera_to_template_.getBasis().getRPY(roll, pitch, yaw);
+  x = camera_to_template_.getOrigin().x();
+  y = camera_to_template_.getOrigin().y();
+  z = camera_to_template_.getOrigin().z();
+  ROS_INFO_STREAM("[TemplatePose:] Camera to template image:" <<
+                  " [" << x << ", " << y << ", " << z << 
+                  ", " << roll*180/M_PI << ", " << pitch*180/M_PI << 
+                  ", " << yaw*180/M_PI << "]");
 }
 
 /** \brief Reads the stereo slam node parameters
@@ -110,9 +108,9 @@ void template_pose::TemplatePoseBase::readParameters()
   // General parameters
   nh_private_.getParam("queue_size", template_pose_params.queue_size);
   nh_private_.getParam("desc_threshold", template_pose_params.desc_threshold);
-  nh_private_.getParam("template_image_name", template_pose_params.template_image_name);
   nh_private_.getParam("min_matches", template_pose_params.min_matches);
   nh_private_.getParam("min_inliers", template_pose_params.min_inliers);
+  nh_private_.param("template_image_name", template_pose_params.template_image_name, std::string("template.png"));
   nh_private_.param("stereo_frame_id", template_pose_params.stereo_frame_id, std::string("/stereo_down"));
   nh_private_.param("template_frame_id", template_pose_params.template_frame_id, std::string("/template_image"));
 
@@ -139,6 +137,7 @@ bool template_pose::TemplatePoseBase::initialize()
 {
   // Initialize parameters
   first_iter_ = true;
+  camera_to_template_.setIdentity();
 
   // Initialize image properties objects
   template_pose::ImageProperties::Params image_params;
@@ -230,8 +229,8 @@ bool template_pose::TemplatePoseBase::estimateTransform(tf::Transform& output)
   vector<int> inliers;
   solvePnPRansac(matched_3d_points, matched_keypoints, camera_matrix_, 
                  Mat(), rvec, tvec, false /* no extrinsic guess */,
-                 100 /* iterations */, 8.0 /* reproj. error */,
-                 100 /* min inliers */, inliers);
+                 50 /* iterations */, 8.0 /* reproj. error */,
+                 params_.min_inliers /* min inliers */, inliers);
 
   ROS_INFO_STREAM("[TemplatePose:] Found " << inliers.size() <<
    " inliers (min_inliers is: " << params_.min_inliers << ")");
@@ -250,6 +249,6 @@ bool template_pose::TemplatePoseBase::estimateTransform(tf::Transform& output)
   tf::Vector3 translation(tvec.at<double>(0, 0), tvec.at<double>(1, 0), 
       tvec.at<double>(2, 0));
 
-  output = tf::Transform(quaternion, translation);
+  output = (tf::Transform(quaternion, translation)).inverse();
   return true;
 }

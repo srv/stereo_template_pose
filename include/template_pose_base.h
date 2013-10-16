@@ -97,6 +97,7 @@ private:
   Params params_;
 
   // Operational parameters
+  tf::Transform camera_to_template_;          //!> Transform from camera to template
   tf::TransformBroadcaster tf_broadcaster_;   //!> Transform publisher
   ImageProperties template_prop_;             //!> Image properties for the template image
   ImageProperties stereo_prop_;               //!> Image properties for the stereo frame

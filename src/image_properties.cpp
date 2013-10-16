@@ -104,7 +104,6 @@ void template_pose::ImageProperties::setLeftImg(const Mat& img)
                                                     params_.bucket_width, 
                                                     params_.bucket_height, 
                                                     params_.max_bucket_features);
-
   template_pose::OpencvUtils::descriptorExtraction(l_img_, l_kp_, l_desc_, params_.desc_type);
 
   // Compute 3D if right image properties are set
