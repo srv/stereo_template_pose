@@ -190,6 +190,10 @@ bool template_pose::TemplatePoseBase::initialize()
   return true;
 }
 
+/** \brief Estimates the transform between the template and the stereo frame
+  * @return true if all ok
+  * \param - output tf transform
+  */
 bool template_pose::TemplatePoseBase::estimateTransform(tf::Transform& output)
 {
   // Initialize output
