@@ -5,7 +5,7 @@
 
 
 #include <ros/ros.h>
-#include "template_pose_base.h"
+#include "template_pose.h"
 
 int main(int argc, char **argv)
 {
@@ -13,7 +13,7 @@ int main(int argc, char **argv)
   ros::NodeHandle nh;
   ros::NodeHandle nh_private("~");
 
-  template_pose::TemplatePoseBase template_pose(nh,nh_private);
+  template_pose::TemplatePose template_pose(nh,nh_private);
   ros::spin();
   return 0;
 }

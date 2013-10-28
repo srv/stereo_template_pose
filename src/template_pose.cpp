@@ -1,14 +1,15 @@
 #include <ros/package.h>
-#include "template_pose_base.h"
-#include <boost/shared_ptr.hpp>
 #include <cv_bridge/cv_bridge.h>
-#include <opencv2/opencv.hpp>
+#include <boost/shared_ptr.hpp>
 #include <boost/filesystem.hpp>
+#include <opencv2/opencv.hpp>
+
 #include "opencv_utils.h"
+#include "template_pose.h"
 
 /** \brief Parameter constructor. Sets the parameter struct to default values.
   */
-template_pose::TemplatePoseBase::Params::Params() :
+template_pose::TemplatePose::Params::Params() :
   queue_size(DEFAULT_QUEUE_SIZE),
   desc_threshold(DEFAULT_DESC_THRESHOLD),
   min_matches(DEFAULT_MIN_MATCHES),
@@ -25,7 +26,7 @@ template_pose::TemplatePoseBase::Params::Params() :
   * \param nh public node handler
   * \param nhp private node handler
   */
-template_pose::TemplatePoseBase::TemplatePoseBase(
+template_pose::TemplatePose::TemplatePose(
   ros::NodeHandle nh, ros::NodeHandle nhp) : nh_(nh), nhp_(nhp)
 {
   // Read the node parameters
@@ -41,10 +42,18 @@ template_pose::TemplatePoseBase::TemplatePoseBase(
   * \param l_img ros image message of type sensor_msgs::Image
   * \param l_info ros info image message of type sensor_msgs::CameraInfo
   */
-void template_pose::TemplatePoseBase::msgsCallback(
+void template_pose::TemplatePose::msgsCallback(
                                   const sensor_msgs::ImageConstPtr& img,
                                   const sensor_msgs::CameraInfoConstPtr& img_info)
 {
+
+  // Check if service is called or not
+  if (listen_services_ && !(do_detection_ || toggle_detection_))
+  {
+    ROS_INFO("[TemplatePose:] Waiting for start service...");
+    return;
+  }
+
   // Convert image message to Mat
   cv_bridge::CvImagePtr img_ptr;
   try
@@ -53,7 +62,7 @@ void template_pose::TemplatePoseBase::msgsCallback(
   }
   catch (cv_bridge::Exception& e)
   {
-    ROS_ERROR("[StereoSlam:] cv_bridge exception: %s", e.what());
+    ROS_ERROR("[TemplatePose:] cv_bridge exception: %s", e.what());
     return;
   }
 
@@ -92,11 +101,13 @@ void template_pose::TemplatePoseBase::msgsCallback(
                   " [" << x << ", " << y << ", " << z << 
                   ", " << roll*180/M_PI << ", " << pitch*180/M_PI << 
                   ", " << yaw*180/M_PI << "]");
+
+  toggle_detection_ = false;
 }
 
 /** \brief Reads the stereo slam node parameters
   */
-void template_pose::TemplatePoseBase::readParameters()
+void template_pose::TemplatePose::readParameters()
 {
   Params params;
 
@@ -125,16 +136,28 @@ void template_pose::TemplatePoseBase::readParameters()
   image_transport::ImageTransport it(nh_);
   image_sub_.subscribe(it, image_topic, 1);
   info_sub_.subscribe(nh_, image_info_topic, 1);
+
+  // Services to start or stop the template detection
+  nhp_.param("listen_services", listen_services_, false);
+  detect_service_ = nhp_.advertiseService("detect", &TemplatePose::detectSrv, this);
+  start_service_ = nhp_.advertiseService("start_detection", &TemplatePose::startDetectionSrv, this);
+  stop_service_ = nhp_.advertiseService("stop_detection", &TemplatePose::stopDetectionSrv, this);
 }
 
 /** \brief Initializes the template pose class
   * @return true if all ok
   */
-bool template_pose::TemplatePoseBase::initialize()
+bool template_pose::TemplatePose::initialize()
 {
   // Initialize parameters
   first_iter_ = true;
   camera_to_template_.setIdentity();
+
+  // Initialize service bool variables
+  if (listen_services_)
+    do_detection_ = false;
+  else
+    do_detection_ = true;
 
   // Check if template image exists
   string template_file =  ros::package::getPath(ROS_PACKAGE_NAME) + 
@@ -175,7 +198,7 @@ bool template_pose::TemplatePoseBase::initialize()
                                     image_sub_,
                                     info_sub_) );
     approximate_sync_->registerCallback(boost::bind(
-        &template_pose::TemplatePoseBase::msgsCallback,
+        &template_pose::TemplatePose::msgsCallback,
         this, _1, _2));
   }
   else
@@ -184,7 +207,7 @@ bool template_pose::TemplatePoseBase::initialize()
                                     image_sub_,
                                     info_sub_) );
     exact_sync_->registerCallback(boost::bind(
-        &template_pose::TemplatePoseBase::msgsCallback, 
+        &template_pose::TemplatePose::msgsCallback, 
         this, _1, _2));
   }
 
@@ -195,7 +218,7 @@ bool template_pose::TemplatePoseBase::initialize()
   * @return true if all ok
   * \param - output tf transform
   */
-bool template_pose::TemplatePoseBase::estimateTransform(tf::Transform& output)
+bool template_pose::TemplatePose::estimateTransform(tf::Transform& output)
 {
   // Initialize output
   output.setIdentity();
@@ -255,5 +278,29 @@ bool template_pose::TemplatePoseBase::estimateTransform(tf::Transform& output)
       tvec.at<double>(2, 0));
 
   output = tf::Transform(quaternion, translation);
+  return true;
+}
+
+bool template_pose::TemplatePose::detectSrv(std_srvs::Empty::Request&, std_srvs::Empty::Response&)
+{
+  camera_to_template_.setIdentity();
+  do_detection_ = false;
+  toggle_detection_ = true;
+  ROS_INFO("[TemplatePose:] Service Detect requested.");
+  return true;
+}
+
+bool template_pose::TemplatePose::startDetectionSrv(std_srvs::Empty::Request&, std_srvs::Empty::Response&)
+{
+  camera_to_template_.setIdentity();
+  do_detection_ = true;
+  ROS_INFO("[TemplatePose:] Service Start Detection requested.");
+  return true;
+}
+
+bool template_pose::TemplatePose::stopDetectionSrv(std_srvs::Empty::Request&, std_srvs::Empty::Response&)
+{
+  do_detection_ = false;
+  ROS_INFO("[TemplatePose:] Service Stop Detection requested.");
   return true;
 }

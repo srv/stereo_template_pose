@@ -22,6 +22,6 @@ rosbuild_add_boost_directories()
 #executables
 rosbuild_add_executable(template_pose 
 						src/template_pose_node.cpp
-						src/template_pose_base.cpp
+						src/template_pose.cpp
 						src/image_properties.cpp)
 rosbuild_link_boost(template_pose signals filesystem system)

@@ -1,5 +1,5 @@
-#ifndef TEMPLATE_POSE_BASE_H
-#define TEMPLATE_POSE_BASE_H
+#ifndef TEMPLATE_POSE_H
+#define TEMPLATE_POSE_H
 
 #include <ros/ros.h>
 #include <sensor_msgs/Image.h>
@@ -10,6 +10,7 @@
 #include <image_transport/subscriber_filter.h>
 #include <sensor_msgs/image_encodings.h>
 #include <tf/transform_broadcaster.h>
+#include <std_srvs/Empty.h>
 #include "opencv2/core/core.hpp"
 #include "image_properties.h"
 
@@ -21,13 +22,13 @@ namespace enc = sensor_msgs::image_encodings;
 namespace template_pose
 {
 
-class TemplatePoseBase
+class TemplatePose
 {
 
 public:
 
 	// Constructor
-  TemplatePoseBase(ros::NodeHandle nh, ros::NodeHandle nhp);
+  TemplatePose(ros::NodeHandle nh, ros::NodeHandle nhp);
 
   struct Params
   {
@@ -87,6 +88,18 @@ private:
   image_transport::SubscriberFilter image_sub_;
   message_filters::Subscriber<sensor_msgs::CameraInfo> info_sub_;
 
+  // Services
+  ros::ServiceServer detect_service_;
+  ros::ServiceServer start_service_;
+  ros::ServiceServer stop_service_;
+  bool listen_services_;
+  bool do_detection_;
+  bool toggle_detection_; // just one detection is required
+  bool detectSrv(std_srvs::Empty::Request&, std_srvs::Empty::Response&);
+  bool startDetectionSrv(std_srvs::Empty::Request&, std_srvs::Empty::Response&);
+  bool stopDetectionSrv(std_srvs::Empty::Request&, std_srvs::Empty::Response&);
+
+
   // Topic sync properties
   typedef message_filters::sync_policies::ExactTime<sensor_msgs::Image, 
                                                     sensor_msgs::CameraInfo> ExactPolicy;
@@ -111,4 +124,4 @@ private:
 
 } // namespace
 
-#endif // TEMPLATE_POSE_BASE_H
+#endif // TEMPLATE_POSE_H
