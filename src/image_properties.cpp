@@ -71,12 +71,16 @@ void template_pose::ImageProperties::compute3D()
   // Reset the 3D points
   points_3d_.clear();
 
-  // Compute the 3D coordinates
+  // Extract the image size
+  float origin_x = (float)img_.cols * 0.5;
+  float origin_y = (float)img_.rows * 0.5;
+
+  // Compute the 3D coordinates (image center as origin)
   for (size_t i=0; i<kp_.size(); i++)
   {
     Point3f world_point;
-    world_point.x = (float)kp_[i].pt.x/params_.px_meter_x;
-    world_point.y = (float)kp_[i].pt.y/params_.px_meter_y;
+    world_point.x = (float)kp_[i].pt.x/params_.px_meter_x - origin_x;
+    world_point.y = (float)kp_[i].pt.y/params_.px_meter_y - origin_y;
     world_point.z = 0.0;
     points_3d_.push_back(world_point);
   }
