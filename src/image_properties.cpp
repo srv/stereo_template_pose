@@ -79,8 +79,8 @@ void template_pose::ImageProperties::compute3D()
   for (size_t i=0; i<kp_.size(); i++)
   {
     Point3f world_point;
-    world_point.x = (float)kp_[i].pt.x/params_.px_meter_x - origin_x;
-    world_point.y = (float)kp_[i].pt.y/params_.px_meter_y - origin_y;
+    world_point.x = ((float)kp_[i].pt.x - origin_x) / params_.px_meter_x;
+    world_point.y = ((float)kp_[i].pt.y - origin_y) / params_.px_meter_y;
     world_point.z = 0.0;
     points_3d_.push_back(world_point);
   }
