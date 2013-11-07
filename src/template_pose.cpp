@@ -163,7 +163,7 @@ bool template_pose::TemplatePose::initialize()
     do_detection_ = true;
 
   // Check if template image exists
-  string template_file =  params_.template_image_name;
+  string template_file = params_.template_image_name;
   if (!boost::filesystem::exists(template_file))
   {
     ROS_ERROR_STREAM("[TemplatePose:] The template image file does not exists: " << 
