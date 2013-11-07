@@ -87,6 +87,7 @@ private:
   // Topic properties
   image_transport::SubscriberFilter image_sub_;
   message_filters::Subscriber<sensor_msgs::CameraInfo> info_sub_;
+  ros::Publisher matches_image_pub_;
 
   // Services
   ros::ServiceServer detect_service_;

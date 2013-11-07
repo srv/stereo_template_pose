@@ -142,6 +142,9 @@ void template_pose::TemplatePose::readParameters()
   detect_service_ = nhp_.advertiseService("detect", &TemplatePose::detectSrv, this);
   start_service_ = nhp_.advertiseService("start_detection", &TemplatePose::startDetectionSrv, this);
   stop_service_ = nhp_.advertiseService("stop_detection", &TemplatePose::stopDetectionSrv, this);
+
+  // Advertise the image matches publisher
+  matches_image_pub_ = nhp_.advertise<sensor_msgs::Image>("matches", 1);
 }
 
 /** \brief Initializes the template pose class
@@ -160,8 +163,7 @@ bool template_pose::TemplatePose::initialize()
     do_detection_ = true;
 
   // Check if template image exists
-  string template_file =  ros::package::getPath(ROS_PACKAGE_NAME) + 
-                          string("/etc/") + params_.template_image_name;
+  string template_file =  params_.template_image_name;
   if (!boost::filesystem::exists(template_file))
   {
     ROS_ERROR_STREAM("[TemplatePose:] The template image file does not exists: " << 
@@ -230,6 +232,22 @@ bool template_pose::TemplatePose::estimateTransform(tf::Transform& output)
   Mat match_mask;
   template_pose::OpencvUtils::crossCheckThresholdMatching(desc_image,
   desc_template, params_.desc_threshold, match_mask, matches);
+
+  // Publish matches
+  if (matches_image_pub_.getNumSubscribers() > 0)
+  {
+    Mat img_matches;
+    drawMatches(img_prop_.getImg(), 
+                img_prop_.getKp(), 
+                template_prop_.getImg(), 
+                template_prop_.getKp(), 
+                matches, img_matches);
+
+    cv_bridge::CvImage cv_image;
+    cv_image.encoding = enc::BGR8;
+    cv_image.image = img_matches;
+    matches_image_pub_.publish(cv_image.toImageMsg());
+  }
 
   ROS_INFO_STREAM("[TemplatePose:] Found " << matches.size() <<
    " matches (min_matches is: " << params_.min_matches << ")");
