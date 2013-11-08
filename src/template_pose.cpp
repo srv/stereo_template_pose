@@ -50,7 +50,7 @@ void template_pose::TemplatePose::msgsCallback(
   // Check if service is called or not
   if (listen_services_ && !(do_detection_ || toggle_detection_))
   {
-    ROS_INFO("[TemplatePose:] Waiting for start service...");
+    ROS_INFO_ONCE("[TemplatePose:] Waiting for start service...");
     return;
   }
 
